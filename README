@@ -1,10 +1,10 @@
 ODBC database driver for Go
 
-install:
+Install:
 	make install
 	(note: windows need apply CL 3733046 <http://codereview.appspot.com/3733046/> for new cgo windows port.)
 
-simple usage:
+Example:
 
 package main
 
@@ -23,3 +23,7 @@ func main() {
 	stmt.Close()
 	conn.Close()
 }
+
+Tested on:
+	SQL Server 2005 and Windows 7 
+	SQL Server 2005 and Ubuntu 10.4 (UnixODBC+FreeTDS)
