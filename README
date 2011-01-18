@@ -1,0 +1,25 @@
+ODBC database driver for Go
+
+install:
+	make install
+	(note: windows need apply CL 3733046 <http://codereview.appspot.com/3733046/> for new cgo windows port.)
+
+simple usage:
+
+package main
+
+import (
+	"odbc"
+)
+
+func main() {
+	conn, _ := odbc.Connect("DSN=dsn;UID=user;PWD=password")
+	stmt, _ := conn.Prepare("select * from user where username = ?")
+	stmt.Execute("admin")
+	rows, _ := stmt.FetchAll()
+	for i, row := range rows {
+		println(i, row)
+	}
+	stmt.Close()
+	conn.Close()
+}
