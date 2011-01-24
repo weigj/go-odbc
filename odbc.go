@@ -340,9 +340,9 @@ func (r *Row) Get(a interface{}) interface{} {
 		return r.Data[f.Get()]
 	case *reflect.UintValue:
 		return r.Data[f.Get()]
-//	case *reflect.StringValue:
-//		i := r.Meta[f.Get()]
-//		return r.Data[i]
+		//	case *reflect.StringValue:
+		//		i := r.Meta[f.Get()]
+		//		return r.Data[i]
 	}
 	return nil
 }
@@ -395,13 +395,13 @@ func (r *Row) Length() int {
 
 func (stmt *Statement) FetchAll() (rows []*Row, err *ODBCError) {
 	for {
-		row , err := stmt.FetchOne()
+		row, err := stmt.FetchOne()
 		if err != nil || row == nil {
 			break
 		}
 		rows = append(rows, row)
 	}
-	
+
 	return rows, err
 }
 
@@ -716,6 +716,6 @@ func debugPrint(a ...interface{}) {
 
 func init() {
 	if err := initEnv(); err != nil {
-		panic("odbc init env error!"+err.String())
+		panic("odbc init env error!" + err.String())
 	}
 }

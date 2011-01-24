@@ -2,7 +2,6 @@ ODBC database driver for Go
 
 Install:
 	make install
-	(note: windows need apply CL 3733046 <http://codereview.appspot.com/3733046/> for new cgo windows port.)
 
 Example:
 
