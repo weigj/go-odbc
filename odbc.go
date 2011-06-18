@@ -334,12 +334,12 @@ type Row struct {
 // Get(Columnindex)
 // TODO Get(ColumnName)
 func (r *Row) Get(a interface{}) interface{} {
-	value := reflect.NewValue(a)
-	switch f := value.(type) {
-	case *reflect.IntValue:
-		return r.Data[f.Get()]
-	case *reflect.UintValue:
-		return r.Data[f.Get()]
+	value := reflect.ValueOf(a)
+	switch f := value; f.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return r.Data[f.Int()]
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return r.Data[f.Uint()]
 		//	case *reflect.StringValue:
 		//		i := r.Meta[f.Get()]
 		//		return r.Data[i]
@@ -349,42 +349,42 @@ func (r *Row) Get(a interface{}) interface{} {
 
 func (r *Row) GetInt(a interface{}) (ret int64) {
 	v := r.Get(a)
-	value := reflect.NewValue(v)
-	switch f := value.(type) {
-	case *reflect.IntValue:
-		ret = int64(f.Get())
-	case *reflect.UintValue:
-		ret = int64(f.Get())
+	value := reflect.ValueOf(v)
+	switch f := value; f.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		ret = int64(f.Int())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		ret = int64(f.Uint())
 	}
 	return
 }
 
 func (r *Row) GetFloat(a interface{}) (ret float64) {
 	v := r.Get(a)
-	value := reflect.NewValue(v)
-	switch f := value.(type) {
-	case *reflect.FloatValue:
-		ret = float64(f.Get())
+	value := reflect.ValueOf(v)
+	switch f := value; f.Kind() {
+	case reflect.Float32, reflect.Float64:
+		ret = float64(f.Float())
 	}
 	return
 }
 
-func (r *Row) GetComplex(a interface{}) (ret complex) {
+func (r *Row) GetComplex64(a interface{}) (ret complex64) {
 	v := r.Get(a)
-	value := reflect.NewValue(v)
-	switch f := value.(type) {
-	case *reflect.ComplexValue:
-		ret = complex(f.Get())
+	value := reflect.ValueOf(v)
+	switch f := value; f.Kind() {
+	case reflect.Complex64, reflect.Complex128:
+		ret = complex64(f.Complex())
 	}
 	return
 }
 
 func (r *Row) GetString(a interface{}) (ret string) {
 	v := r.Get(a)
-	value := reflect.NewValue(v)
-	switch f := value.(type) {
-	case *reflect.StringValue:
-		ret = f.Get()
+	value := reflect.ValueOf(v)
+	switch f := value; f.Kind() {
+	case reflect.String:
+		ret = f.String()
 	}
 	return
 }
@@ -500,7 +500,7 @@ func (stmt *Statement) BindParam(index int, param interface{}) *ODBCError {
 	var ParameterValuePtr C.SQLPOINTER
 	var BufferLength C.SQLLEN
 	var StrLen_or_IndPt C.SQLLEN
-	v := reflect.NewValue(param)
+	v := reflect.ValueOf(param)
 	if param == nil {
 		ft, _, _, _, err := stmt.GetParamType(index)
 		if err != nil {
@@ -514,12 +514,12 @@ func (stmt *Statement) BindParam(index int, param interface{}) *ODBCError {
 		StrLen_or_IndPt = C.SQL_NULL_DATA
 		ColumnSize = 1
 	} else {
-		switch v := v.(type) {
-		case *reflect.BoolValue:
+		switch v.Kind() {
+		case reflect.Bool:
 			ParameterType = C.SQL_BIT
 			ValueType = C.SQL_C_BIT
 			var b [1]byte
-			if v.Get() {
+			if v.Bool() {
 				b[0] = 1
 			} else {
 				b[0] = 0
@@ -527,37 +527,37 @@ func (stmt *Statement) BindParam(index int, param interface{}) *ODBCError {
 			ParameterValuePtr = C.SQLPOINTER(unsafe.Pointer(&b[0]))
 			BufferLength = 1
 			StrLen_or_IndPt = 0
-		case *reflect.IntValue:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			switch v.Type().Kind() {
 			case reflect.Int:
 			case reflect.Int8, reflect.Int16, reflect.Int32:
 				ParameterType = C.SQL_INTEGER
 				ValueType = C.SQL_C_LONG
-				var l C.long = C.long(v.Get())
+				var l C.long = C.long(v.Int())
 				ParameterValuePtr = C.SQLPOINTER(unsafe.Pointer(&l))
 				BufferLength = 4
 				StrLen_or_IndPt = 0
 			case reflect.Int64:
 				ParameterType = C.SQL_BIGINT
 				ValueType = C.SQL_C_SBIGINT
-				var ll C.longlong = C.longlong(v.Get())
+				var ll C.longlong = C.longlong(v.Int())
 				ParameterValuePtr = C.SQLPOINTER(unsafe.Pointer(&ll))
 				BufferLength = 8
 				StrLen_or_IndPt = 0
 			}
-		case *reflect.FloatValue:
+		case reflect.Float32, reflect.Float64:
 			ParameterType = C.SQL_DOUBLE
 			ValueType = C.SQL_C_DOUBLE
-			var d C.double = C.double(v.Get())
+			var d C.double = C.double(v.Float())
 			ParameterValuePtr = C.SQLPOINTER(unsafe.Pointer(&d))
 			BufferLength = 8
 			StrLen_or_IndPt = 0
-		case *reflect.ComplexValue:
-		case *reflect.StringValue:
-			var slen C.SQLUINTEGER = C.SQLUINTEGER(len(v.Get()))
+		case reflect.Complex64, reflect.Complex128:
+		case reflect.String:
+			var slen C.SQLUINTEGER = C.SQLUINTEGER(len(v.String()))
 			ParameterType = C.SQL_VARCHAR
 			ValueType = C.SQL_C_CHAR
-			s := []byte(v.Get())
+			s := []byte(v.String())
 			ParameterValuePtr = C.SQLPOINTER(unsafe.Pointer(&s[0]))
 			ColumnSize = slen
 			BufferLength = C.SQLINTEGER(slen + 1)
