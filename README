@@ -1,7 +1,15 @@
 ODBC database driver for Go
 
 Install:
-	make install
+	cd $GOPATH/src
+	git clone git://github.com/weigj/go-odbc.git odbc
+	cd odbc
+	Linux: run make.bash or
+		export CGO_LDFLAGS=-lodbc
+		go install
+	Windows: run make.bat or
+		set CGO_LDFLAGS=-lodbc32
+		go install
 
 Example:
 
