@@ -18,12 +18,29 @@ package odbc
 #include <sqlext.h>
 #include <sqltypes.h>
 
+SQLRETURN _SQLColAttribute (
+	SQLHSTMT        StatementHandle,
+	SQLUSMALLINT    ColumnNumber,
+	SQLUSMALLINT    FieldIdentifier,
+	SQLPOINTER      CharacterAttributePtr,
+	SQLSMALLINT     BufferLength,
+	SQLSMALLINT *   StringLengthPtr,
+	void *        NumericAttributePtr) {
+		return SQLColAttribute(StatementHandle,
+			ColumnNumber,
+			FieldIdentifier,
+			CharacterAttributePtr,
+			BufferLength,
+			StringLengthPtr,
+			NumericAttributePtr);
+}
+
 */
 import "C"
 import (
-	"unsafe"
 	"fmt"
 	"reflect"
+	"unsafe"
 )
 
 const (
@@ -265,7 +282,7 @@ func (conn *Connection) Close() *ODBCError {
 }
 
 func (stmt *Statement) RowsAffected() (int, *ODBCError) {
-	var nor C.SQLINTEGER
+	var nor C.SQLLEN
 	ret := C.SQLRowCount(C.SQLHSTMT(stmt.handle), &nor)
 	if !Success(ret) {
 		err := FormatError(C.SQL_HANDLE_STMT, stmt.handle, int(ret))
@@ -369,16 +386,6 @@ func (r *Row) GetFloat(a interface{}) (ret float64) {
 	return
 }
 
-func (r *Row) GetComplex64(a interface{}) (ret complex64) {
-	v := r.Get(a)
-	value := reflect.ValueOf(v)
-	switch f := value; f.Kind() {
-	case reflect.Complex64, reflect.Complex128:
-		ret = complex64(f.Complex())
-	}
-	return
-}
-
 func (r *Row) GetString(a interface{}) (ret string) {
 	v := r.Get(a)
 	value := reflect.ValueOf(v)
@@ -422,13 +429,13 @@ func (stmt *Statement) FetchOne() (*Row, *ODBCError) {
 
 func (stmt *Statement) GetField(field_index int) (v interface{}, ftype int, flen int, err *ODBCError) {
 	var field_type C.int
-	var field_len C.int
+	var field_len C.SQLLEN
 	var ll C.SQLSMALLINT
-	ret := C.SQLColAttribute(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_DESC_CONCISE_TYPE, C.SQLPOINTER(unsafe.Pointer(uintptr(0))), C.SQLSMALLINT(0), &ll, C.SQLPOINTER(unsafe.Pointer(&field_type)))
+	ret := C._SQLColAttribute(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_DESC_CONCISE_TYPE, C.SQLPOINTER(unsafe.Pointer(uintptr(0))), C.SQLSMALLINT(0), &ll, unsafe.Pointer(&field_type))
 	if !Success(ret) {
 		debugPrint("GetFiled type Error")
 	}
-	ret = C.SQLColAttribute(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_DESC_LENGTH, C.SQLPOINTER(unsafe.Pointer(uintptr(0))), C.SQLSMALLINT(0), &ll, C.SQLPOINTER(unsafe.Pointer(&field_len)))
+	ret = C._SQLColAttribute(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_DESC_LENGTH, C.SQLPOINTER(unsafe.Pointer(uintptr(0))), C.SQLSMALLINT(0), &ll, unsafe.Pointer(&field_len))
 	if !Success(ret) {
 		debugPrint("GetFiled len Error")
 	}
@@ -452,12 +459,12 @@ func (stmt *Statement) GetField(field_index int) (v interface{}, ftype int, flen
 		}
 	case C.SQL_WCHAR, C.SQL_WVARCHAR, C.SQL_WLONGVARCHAR:
 		value := make([]uint16, int(field_len)+8)
-		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_WCHAR, C.SQLPOINTER(unsafe.Pointer(&value[0])), C.SQLINTEGER(int(field_len)+4), &fl)
+		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_WCHAR, C.SQLPOINTER(unsafe.Pointer(&value[0])), field_len+4, &fl)
 		s := UTF16ToString(value)
 		v = s
 	default:
 		value := make([]byte, int(fl)+2)
-		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_CHAR, C.SQLPOINTER(unsafe.Pointer(&value[0])), C.SQLINTEGER(int(field_len)+4), &fl)
+		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_CHAR, C.SQLPOINTER(unsafe.Pointer(&value[0])), field_len+4, &fl)
 		s := string(value[0:])
 		v = s
 		debugPrint("default type", value, fl, s)
@@ -559,9 +566,9 @@ func (stmt *Statement) BindParam(index int, param interface{}) *ODBCError {
 			ValueType = C.SQL_C_CHAR
 			s := []byte(v.String())
 			ParameterValuePtr = C.SQLPOINTER(unsafe.Pointer(&s[0]))
-			ColumnSize = slen
-			BufferLength = C.SQLINTEGER(slen + 1)
-			StrLen_or_IndPt = C.SQLINTEGER(slen)
+			ColumnSize =  C.SQLULEN(slen)
+			BufferLength = C.SQLLEN(slen + 1)
+			StrLen_or_IndPt = C.SQLLEN(slen)
 		default:
 			debugPrint("Not support type", v)
 		}
