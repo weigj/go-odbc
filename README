@@ -34,3 +34,4 @@ func main() {
 Tested on:
 	SQL Server 2005 and Windows 7 
 	SQL Server 2005 and Ubuntu 10.4 (UnixODBC+FreeTDS)
+	Oracle 10g and Windows 7
