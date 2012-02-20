@@ -5,6 +5,11 @@
 package odbc
 
 /*
+#cgo darwin LDFLAGS: -lodbc
+#cgo freebsd LDFLAGS: -lodbc
+#cgo linux LDFLAGS: -lodbc
+#cgo windows LDFLAGS: -lodbc32
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -71,6 +76,18 @@ type ODBCError struct {
 	SQLState     string
 	NativeError  int
 	ErrorMessage string
+}
+
+func (e *ODBCError) Error() string {
+	return e.String()
+}
+
+func (e *ODBCError) String() string {
+	if e != nil {
+		// return e.SQLState + " " + string(e.NativeError) + " " + e.ErrorMessage
+		return string(e.NativeError)
+	}
+	return ""
 }
 
 func initEnv() (err *ODBCError) {
@@ -300,6 +317,15 @@ func (stmt *Statement) Cancel() *ODBCError {
 		return err
 	}
 	return nil
+}
+
+func (stmt *Statement) NumParams() int {
+	var cParams C.SQLSMALLINT
+	ret := C.SQLNumParams(C.SQLHSTMT(stmt.handle), &cParams)
+	if !Success(ret) {
+		return -1
+	}
+	return int(cParams)
 }
 
 func (stmt *Statement) Execute(params ...interface{}) *ODBCError {
@@ -566,7 +592,7 @@ func (stmt *Statement) BindParam(index int, param interface{}) *ODBCError {
 			ValueType = C.SQL_C_CHAR
 			s := []byte(v.String())
 			ParameterValuePtr = C.SQLPOINTER(unsafe.Pointer(&s[0]))
-			ColumnSize =  C.SQLULEN(slen)
+			ColumnSize = C.SQLULEN(slen)
 			BufferLength = C.SQLLEN(slen + 1)
 			StrLen_or_IndPt = C.SQLLEN(slen)
 		default:
@@ -666,13 +692,6 @@ func (stmt *Statement) Close() {
 
 func Success(ret C.SQLRETURN) bool {
 	return int(ret) == C.SQL_SUCCESS || int(ret) == C.SQL_SUCCESS_WITH_INFO
-}
-
-func (err *ODBCError) String() string {
-	if err != nil {
-		return err.SQLState + " " + string(err.NativeError) + " " + err.ErrorMessage
-	}
-	return ""
 }
 
 func FormatError(ht C.SQLSMALLINT, h C.SQLHANDLE, val_ret int) (err *ODBCError) {
