@@ -467,13 +467,21 @@ func (stmt *Statement) GetField(field_index int) (v interface{}, ftype int, flen
 	}
 	var fl C.SQLLEN = C.SQLLEN(field_len)
 	switch int(field_type) {
-	case C.SQL_BIT, C.SQL_INTEGER, C.SQL_SMALLINT, C.SQL_TINYINT:
-		var value C.HANDLE
+	case C.SQL_BIT:
+		var value C.BYTE
+		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_BIT, C.SQLPOINTER(unsafe.Pointer(&value)), 0, &fl)
+		if fl == -1 {
+			v = nil
+		} else {
+			v = byte(value)
+		}
+	case C.SQL_INTEGER, C.SQL_SMALLINT, C.SQL_TINYINT:
+		var value C.long
 		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_LONG, C.SQLPOINTER(unsafe.Pointer(&value)), 0, &fl)
 		if fl == -1 {
 			v = nil
 		} else {
-			v = value
+			v = int(value)
 		}
 	case C.SQL_FLOAT, C.SQL_REAL:
 		var value C.double
@@ -481,7 +489,7 @@ func (stmt *Statement) GetField(field_index int) (v interface{}, ftype int, flen
 		if fl == -1 {
 			v = nil
 		} else {
-			v = value
+			v = float64(value)
 		}
 	case C.SQL_WCHAR, C.SQL_WVARCHAR, C.SQL_WLONGVARCHAR:
 		value := make([]uint16, int(field_len)+8)
