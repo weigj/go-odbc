@@ -45,6 +45,7 @@ import "C"
 import (
 	"fmt"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
@@ -474,6 +475,24 @@ func (stmt *Statement) GetField(field_index int) (v interface{}, ftype int, flen
 		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_WCHAR, C.SQLPOINTER(unsafe.Pointer(&value[0])), field_len+4, &fl)
 		s := UTF16ToString(value)
 		v = s
+	case C.SQL_TYPE_TIMESTAMP, C.SQL_TYPE_DATE, C.SQL_TYPE_TIME, C.SQL_DATETIME:
+		var value C.TIMESTAMP_STRUCT
+		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_TYPE_TIMESTAMP, C.SQLPOINTER(unsafe.Pointer(&value)), C.SQLLEN(unsafe.Sizeof(value)), &fl)
+		if fl == -1 {
+			v = nil
+		} else {
+			v = time.Date(int(value.year), time.Month(value.month), int(value.day), int(value.hour), int(value.minute), int(value.second), int(value.fraction), time.UTC)
+		}
+	case C.SQL_BINARY, C.SQL_VARBINARY, C.SQL_LONGVARBINARY:
+		var vv int
+		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_BINARY, C.SQLPOINTER(unsafe.Pointer(&vv)), 0, &fl)
+		if fl == -1 {
+			v = nil
+		} else {
+			value := make([]byte, fl)
+			ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_BINARY, C.SQLPOINTER(unsafe.Pointer(&value[0])), C.SQLLEN(fl), &fl)
+			v = value
+		}
 	default:
 		value := make([]byte, int(fl)+2)
 		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_CHAR, C.SQLPOINTER(unsafe.Pointer(&value[0])), field_len+4, &fl)
