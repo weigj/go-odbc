@@ -494,10 +494,9 @@ func (stmt *Statement) GetField(field_index int) (v interface{}, ftype int, flen
 			v = value
 		}
 	default:
-		value := make([]byte, int(fl)+2)
-		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_CHAR, C.SQLPOINTER(unsafe.Pointer(&value[0])), field_len+4, &fl)
-		s := string(value[0:])
-		v = s
+		value := make([]byte, field_len)
+		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_BINARY, C.SQLPOINTER(unsafe.Pointer(&value[0])), field_len, &fl)
+		v = value
 	}
 	if !Success(ret) {
 		err = FormatError(C.SQL_HANDLE_STMT, stmt.handle)
