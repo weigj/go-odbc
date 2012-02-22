@@ -54,7 +54,7 @@ const (
 )
 
 var (
-	Genv            C.SQLHANDLE
+	Genv C.SQLHANDLE
 )
 
 type Connection struct {
@@ -170,10 +170,6 @@ func (conn *Connection) Prepare(sql string, params ...interface{}) (*Statement, 
 	stmt.prepared = true
 	return stmt, nil
 }
-
-//func (conn *Connection) Query(sql string, params ...interface{}) (stmt *Statement, err *ODBCError) {
-//	//TODO 
-//}
 
 func (conn *Connection) Commit() (err *ODBCError) {
 	ret := C.SQLEndTran(C.SQL_HANDLE_DBC, conn.Dbc, C.SQL_COMMIT)
@@ -457,7 +453,15 @@ func (stmt *Statement) GetField(field_index int) (v interface{}, ftype int, flen
 		} else {
 			v = int(value)
 		}
-	case C.SQL_FLOAT, C.SQL_REAL:
+	case C.SQL_BIGINT:
+		var value C.longlong
+		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_SBIGINT, C.SQLPOINTER(unsafe.Pointer(&value)), 0, &fl)
+		if fl == -1 {
+			v = nil
+		} else {
+			v = int64(value)
+		}
+	case C.SQL_FLOAT, C.SQL_REAL, C.SQL_DOUBLE:
 		var value C.double
 		ret = C.SQLGetData(C.SQLHSTMT(stmt.handle), C.SQLUSMALLINT(field_index+1), C.SQL_C_DOUBLE, C.SQLPOINTER(unsafe.Pointer(&value)), 0, &fl)
 		if fl == -1 {
