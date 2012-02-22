@@ -55,7 +55,6 @@ const (
 
 var (
 	Genv            C.SQLHANDLE
-	SQL_NULL_HANDLE C.SQLHANDLE
 )
 
 type Connection struct {
@@ -89,7 +88,7 @@ func (e *ODBCError) String() string {
 }
 
 func initEnv() (err *ODBCError) {
-	ret := C.SQLAllocHandle(C.SQL_HANDLE_ENV, SQL_NULL_HANDLE, &Genv)
+	ret := C.SQLAllocHandle(C.SQL_HANDLE_ENV, nil, &Genv)
 	if !Success(ret) {
 		err := FormatError(C.SQL_HANDLE_ENV, Genv, int(ret))
 		return err
