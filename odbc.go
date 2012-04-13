@@ -47,6 +47,7 @@ import (
 	"reflect"
 	"time"
 	"unsafe"
+	"database/sql/driver"
 )
 
 const (
@@ -304,6 +305,32 @@ func (stmt *Statement) NumParams() int {
 }
 
 func (stmt *Statement) Execute(params ...interface{}) *ODBCError {
+	if params != nil {
+		var cParams C.SQLSMALLINT
+		ret := C.SQLNumParams(C.SQLHSTMT(stmt.handle), &cParams)
+		if !Success(ret) {
+			err := FormatError(C.SQL_HANDLE_STMT, stmt.handle)
+			return err
+		}
+		for i := 0; i < int(cParams); i++ {
+			stmt.BindParam(i+1, params[i])
+		}
+	}
+	ret := C.SQLExecute(C.SQLHSTMT(stmt.handle))
+	if ret == C.SQL_NEED_DATA {
+		// TODO
+		//		send_data(stmt)
+	} else if ret == C.SQL_NO_DATA {
+		// Execute NO DATA
+	} else if !Success(ret) {
+		err := FormatError(C.SQL_HANDLE_STMT, stmt.handle)
+		return err
+	}
+	stmt.executed = true
+	return nil
+}
+
+func (stmt *Statement) Execute2(params []driver.Value) *ODBCError {
 	if params != nil {
 		var cParams C.SQLSMALLINT
 		ret := C.SQLNumParams(C.SQLHSTMT(stmt.handle), &cParams)

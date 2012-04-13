@@ -82,7 +82,7 @@ type stmt struct {
 }
 
 func (s *stmt) Exec(args []driver.Value) (driver.Result, error) {
-	if err := s.st.Execute(args); err != nil {
+	if err := s.st.Execute2(args); err != nil {
 		return nil, err
 	}
 
@@ -96,7 +96,7 @@ func (s *stmt) NumInput() int {
 }
 
 func (s *stmt) Query(args []driver.Value) (driver.Rows, error) {
-	if err := s.st.Execute(args); err != nil {
+	if err := s.st.Execute2(args); err != nil {
 		return nil, err
 	}
 	rows := &rows{s: s}
