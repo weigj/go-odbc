@@ -43,11 +43,11 @@ SQLRETURN _SQLColAttribute (
 */
 import "C"
 import (
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"time"
 	"unsafe"
-	"database/sql/driver"
 )
 
 const (
