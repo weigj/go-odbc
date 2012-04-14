@@ -145,15 +145,12 @@ func (r *rows) Close() error {
 }
 
 func (r *rows) Next(dest []driver.Value) error {
-	rs, err := r.s.st.FetchOne()
+	eof, err := r.s.st.FetchOne2(dest)
 	if err != nil {
 		return err
 	}
-	if rs == nil && err == nil {
+	if eof {
 		return io.EOF
-	}
-	for i, _ := range dest {
-		dest[i] = rs.Data[i]
 	}
 	return nil
 }

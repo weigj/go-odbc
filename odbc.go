@@ -451,6 +451,21 @@ func (stmt *Statement) FetchOne() (*Row, *ODBCError) {
 	return row, nil
 }
 
+func (stmt *Statement) FetchOne2(row []driver.Value) (eof bool, err *ODBCError) {
+	ok, err := stmt.Fetch()
+	if !ok && err == nil {
+		return !ok, nil
+	} else if err != nil {
+		return false, err
+	}
+	n, _ := stmt.NumFields()
+	for i := 0; i < n; i++ {
+		v, _, _, _ := stmt.GetField(i)
+		row[i] = v
+	}
+	return false, nil
+}
+
 func (stmt *Statement) GetField(field_index int) (v interface{}, ftype int, flen int, err *ODBCError) {
 	var field_type C.int
 	var field_len C.SQLLEN
